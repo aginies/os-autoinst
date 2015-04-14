@@ -206,12 +206,23 @@ sub set_ocr_rect { @ocrrect = @_; }
 
 # util and helper functions
 
+sub timedlog($) {
+    my ($text) = @_;
+    if (-e result_dir) {
+        my $time = sprintf("%i.%06i", gettimeofday);
+        open(my $tl, ">>", result_dir . "/timedlog.txt") or die $!;
+        print $tl "time=$time $text\n";
+        close $tl;
+    }
+}
+
 sub print_possibly_colored($;$) {
     my ($text, $color) = @_;
 
     if (($direct_output && !$istty) || !$direct_output) {
         $logfd && print $logfd "$text\n";
     }
+    timedlog($text);
     if ($istty || !$logfd) {
         if ($color) {
             print STDERR colored($text, $color) . "\n";
