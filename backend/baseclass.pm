@@ -425,6 +425,7 @@ sub enqueue_screenshot() {
         $self->{encoder_pipe}->print("E $lastscreenshotName\n");
     }
     $self->{encoder_pipe}->flush();
+    bmwqemu::timedlog("wrote screenshot #$framecounter");
 }
 
 sub close_pipes() {
