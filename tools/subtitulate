@@ -1,0 +1,55 @@
+#!/usr/bin/perl -w
+use strict;
+# 2015 by Bernhard M. Wiedemann
+# Licensed under GPL v2 or later
+
+# usage: $0 testresults/timedlog.txt > video.vtt
+# this uses a log with precise timestamps as source
+# and produces subtitles to the video in WebVTT standard
+
+our $fps=24;
+our $granularity=int($fps*0.5);
+our $ssnoffset=0;
+
+sub ssn2videotime($)
+{
+    my $ssn=shift;
+    my $sec=($ssn+$ssnoffset)/$fps;
+    return sprintf("%02i:%02i.%03i", $sec/60, $sec%60, 1000*($sec-int($sec)));
+}
+
+print "WEBVTT FILE\n\n";
+my $subnum=1;
+my $subtext='';
+my $starttime;
+my $subopts=" line:0 align:start";
+
+while(<>) {
+    s/time=([0-9.]+) // or next;
+    my $time=$1;
+    if(m/wrote screenshot #(\d+)/) {
+        my $ssn=$1;
+        if(($ssn%$granularity)==0) {
+            my $vt=ssn2videotime($ssn);
+            my $endtime=$vt;
+            if($subtext && $starttime) {
+                print "$subnum\n$starttime --> $endtime$subopts\n$subtext\n";
+                $subnum++;
+                $subtext='';
+            }
+            $starttime=$endtime;
+        }
+    } else {
+        # filter for interesting parts
+        next unless m/send_key|type_string|assert_screen|check_screen/;
+        # nicify
+        s/, (timeout|max_interval)=\w+//;
+        s/\((?:string|key|mustmatch)='(.*)'\)/($1)/;
+        s/<<< //;
+        s/>>> //;
+        s/&/&amp;/g;
+        s/</&lt;/g;
+        s/>/&gt;/g;
+        $subtext.=$_;
+    }
+}
